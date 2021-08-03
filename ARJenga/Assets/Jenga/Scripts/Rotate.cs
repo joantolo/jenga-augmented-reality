@@ -12,10 +12,10 @@ using UnityEngine;
 
 public class Rotate : MonoBehaviour
 {
-	//== Methods ===============================================================
+    //== Methods ===============================================================
 
-	public void setAngle(float angle) 
-	{
-		transform.localRotation = Quaternion.AngleAxis(angle, Vector3.up);
-	}
+    public void setAngle(float angle)
+    {
+        transform.localRotation = Quaternion.AngleAxis(angle, Vector3.up);
+    }
 }

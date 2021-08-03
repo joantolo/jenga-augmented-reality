@@ -17,7 +17,7 @@ public class JengaBlock : MonoBehaviour
 
 	public int floor;								// Floor number of block.
 
-	public int color;                               // Color of block.
+	public int color;								// Color of block.
 
 	public int id;									// Id of the block.
 

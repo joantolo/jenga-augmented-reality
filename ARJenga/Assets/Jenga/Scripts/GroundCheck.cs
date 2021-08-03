@@ -19,8 +19,10 @@ public class GroundCheck : MonoBehaviour
 	{
 		if (c == null)
 			return;
+
 		if (c.GetComponent<Rigidbody>() == null)
 			return;
+
 		if (stateMachine == null)
 			return;
 

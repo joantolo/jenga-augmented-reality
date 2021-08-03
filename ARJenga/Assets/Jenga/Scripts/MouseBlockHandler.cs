@@ -12,164 +12,163 @@ using UnityEngine;
 
 public class MouseBlockHandler : MonoBehaviour
 {
-	//== Members ===============================================================
+    //== Members ===============================================================
 
-	public JengaStateMachine stateMachine;
+    public JengaStateMachine stateMachine;
 
-	public Camera cam;
+    public Camera cam;
 
-	//== Properties ============================================================
+    //== Properties ============================================================
 
-	private Rigidbody hitBody;
+    private Rigidbody hitBody;
 
-	public SpringJoint pullSpring;
+    public SpringJoint pullSpring;
 
-	public Rigidbody pullObject;
+    public Rigidbody pullObject;
 
-	private Vector3 faceDirection;
+    private Vector3 faceDirection;
 
-	private Vector3 initialMousePosition;
+    private Vector3 initialMousePosition;
 
-	private Vector3 hitPosition;
+    private Vector3 hitPosition;
 
-	public float forceMultiplier = 1.0f;
+    public float forceMultiplier = 1.0f;
 
-	//== Methods ===============================================================
+    //== Methods ===============================================================
 
-	// ---- Unity events ----
+    // ---- Unity events ----
 
-	void Start () 
-	{
-		if (cam == null)
-			cam = Camera.main;
-	}
-	
-	void Update () 
-	{
-		pullForce();
-	}
+    void Start()
+    {
+        if (cam == null)
+            cam = Camera.main;
+    }
 
-	// ---- Behaviour of handler with blocks ----
+    void Update()
+    {
+        pullForce();
+    }
 
-	public void setForceMultiplier(float value) 
-	{
-		forceMultiplier = value;
-	}
+    // ---- Behaviour of handler with blocks ----
 
-	void pushForce()
-	{
-		// When the user clics on screen.
+    public void setForceMultiplier(float value)
+    {
+        forceMultiplier = value;
+    }
 
-		if (Input.GetMouseButton(0)) 
-		{
-			RaycastHit hit;
+    void pushForce()
+    {
+        // When the user clics on screen.
+
+        if (Input.GetMouseButton(0))
+        {
+            RaycastHit hit;
             Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-			// Pushes when clicks on rigidbody.
+            // Pushes when clicks on rigidbody.
 
             if (Physics.Raycast(ray, out hit))
-			{
-				Rigidbody r = hit.rigidbody;
+            {
+                Rigidbody r = hit.rigidbody;
 
-				if (r == null)
-					return;
+                if (r == null)
+                    return;
 
-				hitPosition = hit.point;
-				r.AddForceAtPosition(ray.direction * forceMultiplier, hitPosition);
-			}
+                hitPosition = hit.point;
+                r.AddForceAtPosition(ray.direction * forceMultiplier, hitPosition);
+            }
         }
-	}
+    }
 
-	void grabBlock() 
-	{
-		// Raycast to get the block behind the mouse position.
+    void grabBlock()
+    {
+        // Raycast to get the block behind the mouse position.
 
-		RaycastHit hit;
-		Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-		if (Physics.Raycast(ray, out hit)) 
-		{
-			// If there is a hit check that has a rigidbody.
+        RaycastHit hit;
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        if (Physics.Raycast(ray, out hit))
+        {
+            // If there is a hit check that has a rigidbody.
 
-			Rigidbody r = hit.rigidbody;
-			hitBody = r;
-			if (r == null)
-				return;
+            Rigidbody r = hit.rigidbody;
+            hitBody = r;
+            if (r == null)
+                return;
 
-			// Configure the spring joint to grab the token.
+            // Configure the spring joint to grab the token.
 
-			hitPosition = hit.point;
-			pullSpring.connectedBody = r;
-			pullSpring.connectedAnchor = r.transform.InverseTransformPoint(hitPosition);
-			pullSpring.spring *= forceMultiplier;
-			faceDirection = hit.normal;
-			initialMousePosition = Input.mousePosition;
-			
-			// Notify the state machine that a block has been grabbed.
+            hitPosition = hit.point;
+            pullSpring.connectedBody = r;
+            pullSpring.connectedAnchor = r.transform.InverseTransformPoint(hitPosition);
+            pullSpring.spring *= forceMultiplier;
+            faceDirection = hit.normal;
+            initialMousePosition = Input.mousePosition;
 
-			if (stateMachine != null)
-				stateMachine.setBlockGrabbed(r);
-		}
-	}
+            // Notify the state machine that a block has been grabbed.
 
-	void releaseBlock() 
-	{
-		// Check if there is a block grabbed.
+            if (stateMachine != null)
+                stateMachine.setBlockGrabbed(r);
+        }
+    }
 
-		if (pullSpring.connectedBody != null) 
-		{
+    void releaseBlock()
+    {
+        // Check if there is a block grabbed.
 
-			// Disconect the token from the spring joint.
+        if (pullSpring.connectedBody != null)
+        {
+            // Disconect the token from the spring joint.
 
-			pullSpring.connectedBody = null;
+            pullSpring.connectedBody = null;
 
-			// Notify the state machine that the block has been released.
+            // Notify the state machine that the block has been released.
 
-			if (stateMachine != null)
-				stateMachine.releaseBlock();
-		}
-	}
+            if (stateMachine != null)
+                stateMachine.releaseBlock();
+        }
+    }
 
-	void updateForce() 
-	{
-		// Pull direction is computed using the orientation of the camera.
+    void updateForce()
+    {
+        // Pull direction is computed using the orientation of the camera.
 
-		Vector3 pullDirection = cam.transform.right *(Input.mousePosition.x-initialMousePosition.x) +
-								cam.transform.up * (Input.mousePosition.y-initialMousePosition.y);
+        Vector3 pullDirection = cam.transform.right * (Input.mousePosition.x - initialMousePosition.x) +
+                                cam.transform.up * (Input.mousePosition.y - initialMousePosition.y);
 
-		// Pull direction is corrected using the normal of the hitted face
-		// with this correction it's easier to play 
-		// because the system helps the user to pull in the correct direction.
+        // Pull direction is corrected using the normal of the hitted face
+        // with this correction it's easier to play 
+        // because the system helps the user to pull in the correct direction.
 
-		float dot = Vector3.Dot(pullDirection, faceDirection);
+        float dot = Vector3.Dot(pullDirection, faceDirection);
 
-		if (dot < 0)
-			faceDirection *= -1;
+        if (dot < 0)
+            faceDirection *= -1;
 
-		pullDirection = Vector3.Lerp(pullDirection,faceDirection*pullDirection.magnitude,0.3f);
-		pullDirection /= Screen.width;
-		pullDirection *= (hitBody.position - cam.transform.position).magnitude;
+        pullDirection = Vector3.Lerp(pullDirection, faceDirection * pullDirection.magnitude, 0.3f);
+        pullDirection /= Screen.width;
+        pullDirection *= (hitBody.position - cam.transform.position).magnitude;
 
-		// Finally, the object thas pulls from the joint if moved in the computed direction.
+        // Finally, the object thas pulls from the joint if moved in the computed direction.
 
-		pullObject.transform.position = hitPosition + pullDirection;
-	}
+        pullObject.transform.position = hitPosition + pullDirection;
+    }
 
-	void pullForce() 
-	{
-		if (Input.GetMouseButtonDown(0))
-		{
-			grabBlock();
-		} 
-		else if (!Input.GetMouseButton(0)) 
-		{
-			releaseBlock();
-		}
+    void pullForce()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            grabBlock();
+        }
+        else if (!Input.GetMouseButton(0))
+        {
+            releaseBlock();
+        }
 
-		// Update force.
+        // Update force.
 
-		if (pullSpring.connectedBody != null) 
-		{
-			updateForce();
-		}
-	}
+        if (pullSpring.connectedBody != null)
+        {
+            updateForce();
+        }
+    }
 }

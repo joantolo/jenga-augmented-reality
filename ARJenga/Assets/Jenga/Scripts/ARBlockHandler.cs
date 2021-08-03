@@ -45,10 +45,10 @@ public class ARBlockHandler : MonoBehaviour
         // When there is no ball fired.
 
         if (!shotBall)
-        { 
+        {
             RaycastHit hit;
 
-            if (Physics.Raycast(rayOrigin, transform.forward * 20, out hit))    
+            if (Physics.Raycast(rayOrigin, transform.forward * 20, out hit))
             {
                 // If the ray collides with the tower, the laser won't pass through it.
 
@@ -56,7 +56,7 @@ public class ARBlockHandler : MonoBehaviour
 
                 // The ball is fired when pressing 'A'.
 
-                if (Input.GetKeyDown(KeyCode.A))    
+                if (Input.GetKeyDown(KeyCode.A))
                 {
                     Debug.Log(shotBall);
                     shotBall = true;
@@ -67,7 +67,6 @@ public class ARBlockHandler : MonoBehaviour
             {
                 laserLine.SetPosition(1, rayOrigin + transform.forward * 20);
             }
-
         }
         else
         {
@@ -92,7 +91,7 @@ public class ARBlockHandler : MonoBehaviour
             {
                 currentBall.transform.position += Vector3.Normalize(rayOrigin - currentBall.transform.position) * 0.002f;
             }
-        } 
+        }
     }
 
     // ---- Behaviour of handler with blocks ----

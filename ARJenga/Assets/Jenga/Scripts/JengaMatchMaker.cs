@@ -34,7 +34,7 @@ public class JengaMatchMaker : MonoBehaviour
 
     public int serverPort = 10100;
 
-	public string serverIP = "127.0.0.1";
+    public string serverIP = "127.0.0.1";
 
     public string jengaGameScene;
 
@@ -75,10 +75,9 @@ public class JengaMatchMaker : MonoBehaviour
     {
         // Check if loading new scene.
 
-        if (loading) 
+        if (loading)
         {
-            
-            if (!IsInvoking("loadJengaGame")) 
+            if (!IsInvoking("loadJengaGame"))
             {
                 Invoke("loadJengaGame", 1.0f);
             }
@@ -91,17 +90,18 @@ public class JengaMatchMaker : MonoBehaviour
 
         // If udp is not working properly, then not continue.
 
-        if ((udp == null) || (ep == null) || (udp.Client == null) )
+        if ((udp == null) || (ep == null) || (udp.Client == null))
             return;
 
         // Set a very low timeout to avoid waiting time in update.
 
         udp.Client.ReceiveTimeout = 5;
 
-		try {
+        try
+        {
             // Try to load 20 packets to avoid acumulation of the information.
 
-            for (int i= 0; i < 20; ++i) 
+            for (int i = 0; i < 20; ++i)
             {
                 if (udp.Client.Available <= 0)
                     break;
@@ -113,11 +113,11 @@ public class JengaMatchMaker : MonoBehaviour
 
                 string msg = System.Text.Encoding.ASCII.GetString(bytes);
                 JengaMatchMakerMessage jmmm = JsonUtility.FromJson<JengaMatchMakerMessage>(msg);
-               
-                if (jmmm.cmd == "userList") 
+
+                if (jmmm.cmd == "userList")
                 {
                     ToggleGroup tg = usersContainer.GetComponent<ToggleGroup>();
-                    foreach(JengaUser u in jmmm.users)
+                    foreach (JengaUser u in jmmm.users)
                     {
                         // Search the user.
 
@@ -133,14 +133,14 @@ public class JengaMatchMaker : MonoBehaviour
 
                         // Instantiate new user button.
 
-                        if (ju == null) 
+                        if (ju == null)
                         {
                             GameObject button = Instantiate(userButton, usersContainer.transform);
                             ju = button.GetComponent<JengaUserButton>();
                             Toggle t = button.GetComponent<Toggle>();
                             t.group = tg;
                         }
-  
+
                         // Set user data to the button.
 
                         ju.setUser(u);
@@ -149,14 +149,14 @@ public class JengaMatchMaker : MonoBehaviour
 
                 // Invitation to play received.
 
-                else if (jmmm.cmd == "playInvitation") 
+                else if (jmmm.cmd == "playInvitation")
                 {
                     panelInvitation.SetActive(true);
                     userSelected = jmmm.user;
                     userSelected.ip = ep2.Address.ToString();
                     userSelected.port = ep2.Port;
-                    labelInvitation.text = "Do you want to play with " + userSelected.name + "?\n" ;
-                    PlayerPrefs.SetInt("Invited",1);
+                    labelInvitation.text = "Do you want to play with " + userSelected.name + "?\n";
+                    PlayerPrefs.SetInt("Invited", 1);
                 }
 
                 // Invitation to play accepted.
@@ -169,24 +169,25 @@ public class JengaMatchMaker : MonoBehaviour
 
                 // Invitation rejected.
 
-                else if (jmmm.cmd == "reject") 
+                else if (jmmm.cmd == "reject")
                 {
                     panelWaiting.SetActive(false);
                 }
 
                 // Invitation canceled.
 
-                else if (jmmm.cmd == "cancel") 
+                else if (jmmm.cmd == "cancel")
                 {
                     panelInvitation.SetActive(false);
                 }
 
             }
-        } catch (SocketException e) { }
+        }
+        catch (SocketException e) { }
 
         // Clean old users.
 
-        foreach (JengaUserButton j in jubs) 
+        foreach (JengaUserButton j in jubs)
         {
             if ((Time.time - j.user.lastUpdate) > 15.0f)
             {
@@ -200,19 +201,21 @@ public class JengaMatchMaker : MonoBehaviour
     void initSocket()
     {
         ep = new IPEndPoint(IPAddress.Parse(serverIP), serverPort);
-		udp = new UdpClient();
+        udp = new UdpClient();
     }
 
-    void loadJengaGame() 
+    void loadJengaGame()
     {
         CancelInvoke("sendKeepAlive");
 
         // Close the socket, the same portnumber will be used later in the game.
 
-        try {
+        try
+        {
             if (udp != null)
                 udp.Close();
-        } catch (System.Exception e) { }
+        }
+        catch (System.Exception e) { }
 
         udp = null;
 
@@ -233,7 +236,7 @@ public class JengaMatchMaker : MonoBehaviour
         sendData(jmmm);
     }
 
-    public void playAlone() 
+    public void playAlone()
     {
         PlayerPrefs.SetInt("Play Alone", 1);
         loading = true;
@@ -241,7 +244,7 @@ public class JengaMatchMaker : MonoBehaviour
 
     public void acceptMatch()
     {
-        if (!loading) 
+        if (!loading)
         {
             JengaMatchMakerMessage jmmm = new JengaMatchMakerMessage();
             jmmm.cmd = "accept";
@@ -253,7 +256,7 @@ public class JengaMatchMaker : MonoBehaviour
     public void acceptedMatch()
     {
         leave();
-                
+
         PlayerPrefs.SetInt("localPort", ((IPEndPoint)udp.Client.LocalEndPoint).Port);
         PlayerPrefs.SetInt("remotePort", userSelected.port);
         PlayerPrefs.SetString("remoteIP", userSelected.ip);
@@ -275,7 +278,7 @@ public class JengaMatchMaker : MonoBehaviour
         // Get current users list.
 
         JengaUserButton[] jubs = usersContainer.gameObject.GetComponentsInChildren<JengaUserButton>();
-        foreach (JengaUserButton j in jubs) 
+        foreach (JengaUserButton j in jubs)
         {
             // Ask to start a game to the user with toggle on.
 
@@ -290,16 +293,16 @@ public class JengaMatchMaker : MonoBehaviour
 
                 JengaMatchMakerMessage jmmm = new JengaMatchMakerMessage();
                 jmmm.cmd = "playInvitation";
-                jmmm.user  = new JengaUser();
+                jmmm.user = new JengaUser();
                 jmmm.user.name = inputName.text;
                 sendData(jmmm, userSelected);
-                PlayerPrefs.SetInt("Invited",0);
+                PlayerPrefs.SetInt("Invited", 0);
                 break;
             }
         }
     }
 
-    public void cancelMatch() 
+    public void cancelMatch()
     {
         panelWaiting.SetActive(false);
         JengaMatchMakerMessage jmmm = new JengaMatchMakerMessage();
@@ -307,7 +310,7 @@ public class JengaMatchMaker : MonoBehaviour
         sendData(jmmm, userSelected);
     }
 
-    public void login() 
+    public void login()
     {
         PlayerPrefs.SetString("userName", inputName.text);
 
@@ -320,11 +323,11 @@ public class JengaMatchMaker : MonoBehaviour
         InvokeRepeating("sendKeepAlive", 1, 10);
     }
 
-    public void leave() 
+    public void leave()
     {
         JengaMatchMakerMessage jmmm = new JengaMatchMakerMessage();
         jmmm.cmd = "leave";
-        jmmm.user  = new JengaUser();
+        jmmm.user = new JengaUser();
         jmmm.user.name = inputName.text;
         sendData(jmmm);
     }
@@ -334,16 +337,17 @@ public class JengaMatchMaker : MonoBehaviour
         if (udp == null)
             return false;
 
-		try {
+        try
+        {
             // Serialize message.
 
             string json = JsonUtility.ToJson(data);
             byte[] send_buffer = System.Text.Encoding.ASCII.GetBytes(json);
-			
+
             // Send to user passed as parameter.
 
             IPEndPoint e = ep;
-            if (u != null) 
+            if (u != null)
             {
                 e = new IPEndPoint(IPAddress.Parse(u.ip), u.port);
             }
@@ -354,12 +358,13 @@ public class JengaMatchMaker : MonoBehaviour
             if (res != send_buffer.Length)
                 return false;
 
-			return true;
-			
-		} catch (System.Exception e) 
+            return true;
+
+        }
+        catch (System.Exception e)
         {
-			Debug.LogError(e.Message);
-			return false;
-		}
-	}
+            Debug.LogError(e.Message);
+            return false;
+        }
+    }
 }

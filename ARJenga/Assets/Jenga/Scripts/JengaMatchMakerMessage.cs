@@ -11,7 +11,7 @@ using UnityEngine;
 ////////////////////////////////////////////////////////////////////////////////
 
 [System.Serializable]
-public class JengaMatchMakerMessage 
+public class JengaMatchMakerMessage
 {
     //== Properties ============================================================
 
@@ -23,7 +23,7 @@ public class JengaMatchMakerMessage
 
     //== Constructor ===========================================================
 
-    public JengaMatchMakerMessage() 
+    public JengaMatchMakerMessage()
     {
         cmd = "";
         users = new JengaUser[0];

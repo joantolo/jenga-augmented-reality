@@ -15,262 +15,266 @@ using System.IO;
 /// </summary>
 ////////////////////////////////////////////////////////////////////////////////
 
-public class JengaMatch : MonoBehaviour 
+public class JengaMatch : MonoBehaviour
 {
-	//== Members ===============================================================
+    //== Members ===============================================================
 
-	public JengaStateMachine stateMachine;      // State machine of the game.
+    public JengaStateMachine stateMachine;      // State machine of the game.
 
-	public GameObject tower;					// Jenga tower of the game.
+    public GameObject tower;                    // Jenga tower of the game.
 
-	//== Properties ============================================================
+    //== Properties ============================================================
 
-	public int portNumber;						// Port number of the local player.
+    public int portNumber;                      // Port number of the local player.
 
-	public int remotePortNumber;				// Port number of the remote player.
+    public int remotePortNumber;                // Port number of the remote player.
 
-	public string remoteIP = "127.0.0.1";		// IP of the remote player.
+    public string remoteIP = "127.0.0.1";       // IP of the remote player.
 
-	UdpClient udp;								// To control UDP connection.
+    UdpClient udp;                              // To control UDP connection.
 
-	IPEndPoint ep;								//  Info needed to make an UDP connection.
-	
-	public Dictionary<int, JengaBlock> dblocks; // Dictionary of Jenga blocks.
+    IPEndPoint ep;                              //  Info needed to make an UDP connection.
 
-	public float lastData = 0;					// Time of last connection.
+    public Dictionary<int, JengaBlock> dblocks; // Dictionary of Jenga blocks.
 
-	public bool isMoving = false;				// Flag to know if player is in his turn.
+    public float lastData = 0;                  // Time of last connection.
 
-	[System.Serializable]
-	public class JengaData						// Class containing all info of a Jenga match.
-	{
-		public float timestamp;
-		public JengaBlockData[] blocks;
-		public bool endTurn;
-		public bool lost;
-		public int blockMoving;
+    public bool isMoving = false;               // Flag to know if player is in his turn.
 
-		public JengaData()
-		{
-			timestamp = Time.time;
-			endTurn = false;
-			lost = false;
-			blocks = null;
-			blockMoving = -1;
-		}
-	}
+    [System.Serializable]
+    public class JengaData                      // Class containing all info of a Jenga match.
+    {
+        public float timestamp;
+        public JengaBlockData[] blocks;
+        public bool endTurn;
+        public bool lost;
+        public int blockMoving;
 
-	[System.Serializable]
-	public class JengaBlockData					// Class containing all the info of a Jenga block.
-	{
-		public int id;
-		public float[] p;
-		public float[] r;
-		public bool e;
+        public JengaData()
+        {
+            timestamp = Time.time;
+            endTurn = false;
+            lost = false;
+            blocks = null;
+            blockMoving = -1;
+        }
+    }
 
-		public JengaBlockData(JengaBlock b)
-		{
-			id = b.id;
-			p = new float[]{b.p.x, b.p.y, b.p.z};
-			r = new float[]{b.r.x, b.r.y, b.r.z, b.r.w};
-			e = b.e;
-		}
-	}
+    [System.Serializable]
+    public class JengaBlockData                 // Class containing all the info of a Jenga block.
+    {
+        public int id;
+        public float[] p;
+        public float[] r;
+        public bool e;
 
-	//== Methods ===============================================================
+        public JengaBlockData(JengaBlock b)
+        {
+            id = b.id;
+            p = new float[] { b.p.x, b.p.y, b.p.z };
+            r = new float[] { b.r.x, b.r.y, b.r.z, b.r.w };
+            e = b.e;
+        }
+    }
 
-	// ---- Unity events ----
+    //== Methods ===============================================================
 
-	void Start () 
-	{
-		// Get information of connection.
+    // ---- Unity events ----
 
-		remoteIP = PlayerPrefs.GetString("remoteIP", remoteIP);
-		remotePortNumber = PlayerPrefs.GetInt("remotePort", remotePortNumber);
-		portNumber = PlayerPrefs.GetInt("localPort",10101);
+    void Start()
+    {
+        // Get information of connection.
 
-		// Get information of Jenga tower.
+        remoteIP = PlayerPrefs.GetString("remoteIP", remoteIP);
+        remotePortNumber = PlayerPrefs.GetInt("remotePort", remotePortNumber);
+        portNumber = PlayerPrefs.GetInt("localPort", 10101);
 
-		JengaBlock[] blocks = tower.GetComponentsInChildren<JengaBlock>();
-		dblocks = new Dictionary<int, JengaBlock>();
+        // Get information of Jenga tower.
 
-		foreach(JengaBlock b in blocks)
-			dblocks[b.id] = b;
+        JengaBlock[] blocks = tower.GetComponentsInChildren<JengaBlock>();
+        dblocks = new Dictionary<int, JengaBlock>();
 
-		// Create socket and determine which turn is.
+        foreach (JengaBlock b in blocks)
+            dblocks[b.id] = b;
 
-		initSocket();
-		
-		if (portNumber > remotePortNumber)  
-			stateMachine.receivedStartTurn();
-		else if (portNumber == remotePortNumber) 
-		{
-			if (PlayerPrefs.GetInt("Invited", 0) == 0) 
-				stateMachine.endTurn();
-			else
-				stateMachine.receivedStartTurn();
-		}
-		else 
-		{
-			stateMachine.endTurn();
-		}
-	}
-	
-	void Update () 
-	{
-		// Enable physix of Jenga blocks if is a turn.
+        // Create socket and determine which turn is.
 
-		enablePhysx(isMoving);
-		
-		// Send info of Jenga Blocks to the remote player.
+        initSocket();
 
-		if (isMoving) 
-		{
-			lastData = Time.time;
+        if (portNumber > remotePortNumber)
+            stateMachine.receivedStartTurn();
+        else if (portNumber == remotePortNumber)
+        {
+            if (PlayerPrefs.GetInt("Invited", 0) == 0)
+                stateMachine.endTurn();
+            else
+                stateMachine.receivedStartTurn();
+        }
+        else
+        {
+            stateMachine.endTurn();
+        }
+    }
 
-			if (!IsInvoking("sendBlocks"))
-				InvokeRepeating("sendBlocks", 0.5f, 0.1f);
-		}
-		else if (!isMoving) 
-		{
-			CancelInvoke("sendBlocks");
-		}
+    void Update()
+    {
+        // Enable physix of Jenga blocks if is a turn.
 
-		receiveData();
-	}
+        enablePhysx(isMoving);
 
-	// ---- Enable blocks method ----
+        // Send info of Jenga Blocks to the remote player.
 
-	void enablePhysx(bool value)
-	{
-		Rigidbody[] bs = tower.GetComponentsInChildren<Rigidbody>();
+        if (isMoving)
+        {
+            lastData = Time.time;
 
-		foreach (Rigidbody b in bs)
-			b.isKinematic = !value;
-	}
+            if (!IsInvoking("sendBlocks"))
+                InvokeRepeating("sendBlocks", 0.5f, 0.1f);
+        }
+        else if (!isMoving)
+        {
+            CancelInvoke("sendBlocks");
+        }
 
-	// ---- Connection method ----
+        receiveData();
+    }
 
-	void initSocket() 
-	{
-		ep = new IPEndPoint(IPAddress.Parse(remoteIP), remotePortNumber);
-		udp = new UdpClient(portNumber);
-	}
+    // ---- Enable blocks method ----
 
-	// ---- Serialization and parsing of data for connection methods ----
+    void enablePhysx(bool value)
+    {
+        Rigidbody[] bs = tower.GetComponentsInChildren<Rigidbody>();
 
-	void receiveData()
-	{
-		if (udp == null)
-			return;
+        foreach (Rigidbody b in bs)
+            b.isKinematic = !value;
+    }
 
-		udp.Client.ReceiveTimeout = 5;
-		try {
-			// Try to load 20 packets to avoid acumulation of the information.
+    // ---- Connection method ----
 
-			for (int i = 0; i < 20; ++i)
-			{
-				IPEndPoint ep2 = new IPEndPoint(IPAddress.Any, 0);
-				byte[] bytes = udp.Receive(ref ep2);
+    void initSocket()
+    {
+        ep = new IPEndPoint(IPAddress.Parse(remoteIP), remotePortNumber);
+        udp = new UdpClient(portNumber);
+    }
 
-				if (!isMoving)
-				{
-					// Parse Jenga block data from remote player.
+    // ---- Serialization and parsing of data for connection methods ----
 
-					JengaData data;
-					BinaryFormatter bf = new BinaryFormatter();
-					using (MemoryStream ms = new MemoryStream(bytes))
-					{
-						data = (JengaData)bf.Deserialize(ms);
+    void receiveData()
+    {
+        if (udp == null)
+            return;
 
-						lastData = Time.time;
+        udp.Client.ReceiveTimeout = 5;
+        try
+        {
+            // Try to load 20 packets to avoid acumulation of the information.
 
-						if (data.blocks != null)
-							foreach (JengaBlockData b in data.blocks)
-							{
-								dblocks[b.id].p = new Vector3(b.p[0], b.p[1], b.p[2]);
-								dblocks[b.id].r = new Quaternion(b.r[0], b.r[1], b.r[2], b.r[3]);
-								dblocks[b.id].e = b.e;
-							}
+            for (int i = 0; i < 20; ++i)
+            {
+                IPEndPoint ep2 = new IPEndPoint(IPAddress.Any, 0);
+                byte[] bytes = udp.Receive(ref ep2);
 
-						// And finally pass remote Jenga state of game to state Machine.
+                if (!isMoving)
+                {
+                    // Parse Jenga block data from remote player.
 
-						if (data.endTurn == true)
-							stateMachine.receivedStartTurn();
+                    JengaData data;
+                    BinaryFormatter bf = new BinaryFormatter();
+                    using (MemoryStream ms = new MemoryStream(bytes))
+                    {
+                        data = (JengaData)bf.Deserialize(ms);
 
-						if (data.lost == true)
-							stateMachine.win();
-					}
-				}
-			}
+                        lastData = Time.time;
 
-		} catch (SocketException e) { }
-	}
+                        if (data.blocks != null)
+                            foreach (JengaBlockData b in data.blocks)
+                            {
+                                dblocks[b.id].p = new Vector3(b.p[0], b.p[1], b.p[2]);
+                                dblocks[b.id].r = new Quaternion(b.r[0], b.r[1], b.r[2], b.r[3]);
+                                dblocks[b.id].e = b.e;
+                            }
 
-	bool sendData(JengaData data)
-	{
-		if (udp == null)
-			return false;
+                        // And finally pass remote Jenga state of game to state Machine.
 
-		try {
-			//Serialize data.
+                        if (data.endTurn == true)
+                            stateMachine.receivedStartTurn();
 
-			BinaryFormatter bf = new BinaryFormatter();
-			using (MemoryStream ms = new MemoryStream())
-			{
-				bf.Serialize(ms, data);
-				byte[] bytes = ms.ToArray();
+                        if (data.lost == true)
+                            stateMachine.win();
+                    }
+                }
+            }
 
-				// Once serialized. Send it.
+        }
+        catch (SocketException e) { }
+    }
 
-				int res = udp.Send(bytes, bytes.Length, ep);
+    bool sendData(JengaData data)
+    {
+        if (udp == null)
+            return false;
 
-				if (res != bytes.Length)
-					return false;
+        try
+        {
+            //Serialize data.
 
-				return true;
-			}
-		} catch (System.Exception e)
-		{
-			Debug.LogError(e.Message);
-			return false;
-		}
-	}
+            BinaryFormatter bf = new BinaryFormatter();
+            using (MemoryStream ms = new MemoryStream())
+            {
+                bf.Serialize(ms, data);
+                byte[] bytes = ms.ToArray();
 
-	void fillBlocks(ref JengaData data)
-	{
-		List<JengaBlockData> lblocks = new List<JengaBlockData>();
+                // Once serialized. Send it.
 
-		foreach (KeyValuePair<int, JengaBlock> b in dblocks)
-		{
-			if (b.Value != null)
-				lblocks.Add(new JengaBlockData(b.Value));
-		}
+                int res = udp.Send(bytes, bytes.Length, ep);
 
-		data.blocks = lblocks.ToArray();
-	}
+                if (res != bytes.Length)
+                    return false;
 
-	void sendBlocks() 
-	{
-		JengaData data = new JengaData();
-		fillBlocks(ref data);
-		sendData(data);
-	}
+                return true;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError(e.Message);
+            return false;
+        }
+    }
 
-	public void sendEndTurn()
-	{
-		lastData = Time.time;
-		JengaData data = new JengaData();
-		fillBlocks(ref data);
-		data.endTurn = true;
-		sendData(data);
-	}
+    void fillBlocks(ref JengaData data)
+    {
+        List<JengaBlockData> lblocks = new List<JengaBlockData>();
 
-	public void sendLost()
-	{
-		JengaData data = new JengaData();
-		fillBlocks(ref data);
-		data.lost = true;
-		sendData(data);
-	}
+        foreach (KeyValuePair<int, JengaBlock> b in dblocks)
+        {
+            if (b.Value != null)
+                lblocks.Add(new JengaBlockData(b.Value));
+        }
+
+        data.blocks = lblocks.ToArray();
+    }
+
+    void sendBlocks()
+    {
+        JengaData data = new JengaData();
+        fillBlocks(ref data);
+        sendData(data);
+    }
+
+    public void sendEndTurn()
+    {
+        lastData = Time.time;
+        JengaData data = new JengaData();
+        fillBlocks(ref data);
+        data.endTurn = true;
+        sendData(data);
+    }
+
+    public void sendLost()
+    {
+        JengaData data = new JengaData();
+        fillBlocks(ref data);
+        data.lost = true;
+        sendData(data);
+    }
 }
